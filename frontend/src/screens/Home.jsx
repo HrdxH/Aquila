@@ -1,42 +1,52 @@
-import React, { useContext, useState, useEffect } from 'react'
-import { UserContext } from '../context/user.context'
-import axios from "../config/axios"
-import { useNavigate } from 'react-router-dom'
+import React, { useContext, useState, useEffect } from 'react';
+import { UserContext } from '../context/user.context';
+import axios from "../config/axios";
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+    const { user } = useContext(UserContext);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [projectName, setProjectName] = useState('');
+    const [projects, setProjects] = useState([]);
 
-    const { user } = useContext(UserContext)
-    const [ isModalOpen, setIsModalOpen ] = useState(false)
-    const [ projectName, setProjectName ] = useState(null)
-    const [ project, setProject ] = useState([])
-
-    const navigate = useNavigate()
+    const navigate = useNavigate();
 
     function createProject(e) {
-        e.preventDefault()
-        console.log({ projectName })
+        e.preventDefault();
+        console.log({ projectName });
 
         axios.post('/projects/create', {
             name: projectName,
         })
             .then((res) => {
-                console.log(res)
-                setIsModalOpen(false)
+                console.log(res);
+                setIsModalOpen(false);
+                setProjects([...projects, res.data.project]); // Add new project to the list
             })
             .catch((error) => {
-                console.log(error)
-            })
+                console.error('Error creating project:', error);
+                if (error.response) {
+                    // Server responded with a status other than 2xx
+                    console.error('Response data:', error.response.data);
+                    console.error('Response status:', error.response.status);
+                    console.error('Response headers:', error.response.headers);
+                } else if (error.request) {
+                    // Request was made but no response received
+                    console.error('Request data:', error.request);
+                } else {
+                    // Something happened in setting up the request
+                    console.error('Error message:', error.message);
+                }
+            });
     }
 
     useEffect(() => {
         axios.get('/projects/all').then((res) => {
-            setProject(res.data.projects)
-
+            setProjects(res.data.projects);
         }).catch(err => {
-            console.log(err)
-        })
-
-    }, [])
+            console.error('Error fetching projects:', err);
+        });
+    }, []);
 
     return (
         <main className='p-4'>
@@ -49,28 +59,22 @@ const Home = () => {
                 </button>
 
                 {
-                    project.map((project) => (
+                    projects.map((project) => (
                         <div key={project._id}
                             onClick={() => {
                                 navigate(`/project`, {
                                     state: { project }
-                                })
+                                });
                             }}
                             className="project flex flex-col gap-2 cursor-pointer p-4 border border-slate-300 rounded-md min-w-52 hover:bg-slate-200">
-                            <h2
-                                className='font-semibold'
-                            >{project.name}</h2>
-
+                            <h2 className='font-semibold'>{project.name}</h2>
                             <div className="flex gap-2">
-                                <p> <small> <i className="ri-user-line"></i> Collaborators</small> :</p>
+                                <p><small><i className="ri-user-line"></i> Collaborators</small>:</p>
                                 {project.users.length}
                             </div>
-
                         </div>
                     ))
                 }
-
-
             </div>
 
             {isModalOpen && (
@@ -83,7 +87,10 @@ const Home = () => {
                                 <input
                                     onChange={(e) => setProjectName(e.target.value)}
                                     value={projectName}
-                                    type="text" className="mt-1 block w-full p-2 border border-gray-300 rounded-md" required />
+                                    type="text"
+                                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
+                                    required
+                                />
                             </div>
                             <div className="flex justify-end">
                                 <button type="button" className="mr-2 px-4 py-2 bg-gray-300 rounded-md" onClick={() => setIsModalOpen(false)}>Cancel</button>
@@ -93,10 +100,8 @@ const Home = () => {
                     </div>
                 </div>
             )}
-
-
         </main>
-    )
-}
+    );
+};
 
-export default Home
+export default Home;
